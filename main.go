@@ -3,6 +3,7 @@ package main
 import (
 	"code.google.com/p/go-html-transform/css/selector"
 	"code.google.com/p/go-html-transform/h5"
+	"code.google.com/p/go.net/html"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
@@ -55,17 +56,7 @@ func signIn(client *http.Client, email, password string) {
 		log.Fatalf("Error getting signin form: %v\n", err)
 	}
 
-	tree, err := h5.New(signInResponse.Body)
-	if err != nil {
-		log.Fatalf("Error parsing signin form: %v\n", err)
-	}
-
-	selectorChain, err := selector.Selector("form input")
-	if err != nil {
-		log.Fatalf("Error finding form inputs on signin form: %v\n", err)
-	}
-
-	matchingNodes := selectorChain.Find(tree.Top())
+	matchingNodes := extractMatchingHtmlNodes(signInResponse, "form input")
 
 	formParams := make(url.Values)
 
@@ -97,19 +88,11 @@ func getScreencastUrls(client *http.Client, screencastUrls chan *url.URL) {
 	if err != nil {
 		log.Fatalf("Error retreiving catalog page: %v\n", err)
 	}
-	tree, err := h5.New(catalogResponse.Body)
-	if err != nil {
-		log.Fatalf("Error parsing catalog page: %v\n", err)
-	}
 
 	// foreach screencast link (.screencast .title a)
 	// TODO figure out why my real selector didn't work
-	selectorChain, err := selector.Selector("a")
-	if err != nil {
-		log.Fatalf("Error building css selector for screencast links: %v\n", err)
-	}
+	matchingNodes := extractMatchingHtmlNodes(catalogResponse, "a")
 
-	matchingNodes := selectorChain.Find(tree.Top())
 	log.Printf("Found %v matching screencast urls", len(matchingNodes))
 
 	for _, node := range matchingNodes {
@@ -132,4 +115,18 @@ func downloadScreencast(screencastUrl *url.URL) {
 	//   - follow it & anny redirect
 	//   - save it to a folder
 	log.Printf("TODO get from %v\n", screencastUrl)
+}
+
+func extractMatchingHtmlNodes(response *http.Response, cssSelector string) []*html.Node {
+	tree, err := h5.New(response.Body)
+	if err != nil {
+		log.Fatalf("Error parsing body into tree: %v\n", err)
+	}
+
+	selectorChain, err := selector.Selector(cssSelector)
+	if err != nil {
+		log.Fatalf("Error parsing cssSelector %v: %v\n", cssSelector, err)
+	}
+
+	return selectorChain.Find(tree.Top())
 }
