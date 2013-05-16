@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/go-html-transform/css/selector"
 	"code.google.com/p/go-html-transform/h5"
 	"code.google.com/p/go.net/html"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
@@ -98,10 +99,9 @@ func getScreencastUrls(client *http.Client, screencastUrls chan *url.URL) {
 	for _, node := range matchingNodes {
 		for _, attr := range node.Attr {
 			if attr.Key == "href" && strings.HasPrefix(attr.Val, "/screencasts/catalog") {
-				url, err := url.Parse(attr.Val)
+				fullDownloadUrl := fmt.Sprintf("https://www.destroyallsoftware%v/download", attr.Val)
+				url, err := url.Parse(fullDownloadUrl)
 				if err == nil {
-					url.Host = "www.destroyallsoftware.com"
-					url.Scheme = "https"
 					screencastUrls <- url
 				} else {
 					log.Fatalf("Error parsing url %v with err: %v", attr.Val, err)
@@ -114,9 +114,9 @@ func getScreencastUrls(client *http.Client, screencastUrls chan *url.URL) {
 func downloadScreencast(screencastUrl *url.URL) {
 	//   - visit page
 	//   - find the link with text "Download for Desktop"
-	//   - follow it & anny redirect
+	//   - follow it & any redirect
 	//   - save it to a folder
-	log.Printf("TODO get from %v\n", screencastUrl)
+	log.Printf("About to fetch %v\n", screencastUrl)
 }
 
 func extractMatchingHtmlNodes(response *http.Response, cssSelector string) []*html.Node {
