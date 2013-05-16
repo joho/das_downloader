@@ -5,6 +5,7 @@ import (
 	"code.google.com/p/go-html-transform/h5"
 	"code.google.com/p/go.net/html"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
@@ -33,7 +34,7 @@ func main() {
 	wait.Add(1)
 	go func() {
 		for screencastUrl := range screencastUrls {
-			downloadScreencast(screencastUrl)
+			downloadScreencast(&client, screencastUrl)
 		}
 		wait.Done()
 	}()
@@ -99,7 +100,7 @@ func getScreencastUrls(client *http.Client, screencastUrls chan *url.URL) {
 	for _, node := range matchingNodes {
 		for _, attr := range node.Attr {
 			if attr.Key == "href" && strings.HasPrefix(attr.Val, "/screencasts/catalog") {
-				fullDownloadUrl := fmt.Sprintf("https://www.destroyallsoftware%v/download", attr.Val)
+				fullDownloadUrl := fmt.Sprintf("https://www.destroyallsoftware.com%v/download", attr.Val)
 				url, err := url.Parse(fullDownloadUrl)
 				if err == nil {
 					screencastUrls <- url
@@ -111,12 +112,38 @@ func getScreencastUrls(client *http.Client, screencastUrls chan *url.URL) {
 	}
 }
 
-func downloadScreencast(screencastUrl *url.URL) {
+func downloadScreencast(client *http.Client, screencastUrl *url.URL) {
 	//   - visit page
 	//   - find the link with text "Download for Desktop"
 	//   - follow it & any redirect
 	//   - save it to a folder
-	log.Printf("About to fetch %v\n", screencastUrl)
+	log.Printf("\n\nFetching %v\n", screencastUrl)
+
+	resp, err := client.Get(screencastUrl.String())
+	if err != nil {
+		log.Printf("ERROR downloading %v: %v", screencastUrl, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// TODO set filename properly
+	status := resp.Header.Get("Status")
+	if status == "404 Not Found" {
+		log.Printf("Headers: %v\n", resp.Header)
+	} else {
+		filename := strings.Split(screencastUrl.String(), "/")[5] + ".mov"
+		file, err := os.Create(filename)
+		if err != nil {
+			log.Fatalf("Error creating file %v: %v\n", filename, err)
+		}
+		defer file.Close()
+
+		n, err := io.Copy(file, resp.Body)
+		log.Printf("Wrote %v to %v\n", n, filename)
+	}
+
+	// TODO skip if file exists and is correct size
+	// contentLength := resp.Header.Get("Content-Length")
 }
 
 func extractMatchingHtmlNodes(response *http.Response, cssSelector string) []*html.Node {
