@@ -6,6 +6,7 @@ import (
 	"code.google.com/p/go.net/html"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
@@ -117,7 +118,7 @@ func downloadScreencast(client *http.Client, screencastUrl *url.URL) {
 	//   - find the link with text "Download for Desktop"
 	//   - follow it & any redirect
 	//   - save it to a folder
-	log.Printf("\n\nFetching %v\n", screencastUrl)
+	log.Printf("Fetching %v\n", screencastUrl)
 
 	resp, err := client.Get(screencastUrl.String())
 	if err != nil {
@@ -130,16 +131,19 @@ func downloadScreencast(client *http.Client, screencastUrl *url.URL) {
 	status := resp.Header.Get("Status")
 	if status == "404 Not Found" {
 		log.Printf("Headers: %v\n", resp.Header)
+		body, _ := ioutil.ReadAll(resp.Body)
+		log.Printf("Body:\n%s\n\n", body)
 	} else {
 		filename := strings.Split(screencastUrl.String(), "/")[5] + ".mov"
 		file, err := os.Create(filename)
 		if err != nil {
-			log.Fatalf("Error creating file %v: %v\n", filename, err)
+			log.Printf("Error creating file %v: %v\n", filename, err)
+			return
 		}
 		defer file.Close()
 
 		n, err := io.Copy(file, resp.Body)
-		log.Printf("Wrote %v to %v\n", n, filename)
+		log.Printf("Wrote %v bytes to %v\n\n", n, filename)
 	}
 
 	// TODO skip if file exists and is correct size
