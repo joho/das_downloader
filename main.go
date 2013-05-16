@@ -100,6 +100,8 @@ func getScreencastUrls(client *http.Client, screencastUrls chan *url.URL) {
 			if attr.Key == "href" && strings.HasPrefix(attr.Val, "/screencasts/catalog") {
 				url, err := url.Parse(attr.Val)
 				if err == nil {
+					url.Host = "www.destroyallsoftware.com"
+					url.Scheme = "https"
 					screencastUrls <- url
 				} else {
 					log.Fatalf("Error parsing url %v with err: %v", attr.Val, err)
