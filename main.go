@@ -12,6 +12,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -31,14 +32,19 @@ func main() {
 
 	screencastUrls := make(chan *url.URL, 5)
 
+	numDownloadingRoutines := runtime.NumCPU()
+	runtime.GOMAXPROCS(numDownloadingRoutines)
 	wait := sync.WaitGroup{}
-	wait.Add(1)
-	go func() {
-		for screencastUrl := range screencastUrls {
-			downloadScreencast(&client, screencastUrl)
-		}
-		wait.Done()
-	}()
+
+	for i := 0; i < numDownloadingRoutines; i++ {
+		wait.Add(1)
+		go func() {
+			for screencastUrl := range screencastUrls {
+				downloadScreencast(&client, screencastUrl)
+			}
+			wait.Done()
+		}()
+	}
 
 	getScreencastUrls(&client, screencastUrls)
 	close(screencastUrls)
