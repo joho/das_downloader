@@ -46,13 +46,13 @@ func main() {
 	wait.Wait()
 }
 
+// grab https://www.destroyallsoftware.com/screencasts/users/sign_in
+//  - store cookies
+//  - get the form
+//  - fill in user & pass
+// submit the form (remember the cross site request hidden input!)
 func signIn(client *http.Client, email, password string) {
 	log.Println("Fetching DAS signin form")
-	// grab https://www.destroyallsoftware.com/screencasts/users/sign_in
-	//  - store cookies
-	//  - get the form
-	//  - fill in user & pass
-	// submit the form (remember the cross site request hidden input!)
 	signInUrl := "https://www.destroyallsoftware.com/screencasts/users/sign_in"
 	signInResponse, err := client.Get(signInUrl)
 	if err != nil {
@@ -83,8 +83,6 @@ func signIn(client *http.Client, email, password string) {
 	if err != nil {
 		log.Fatalf("Error signing in: %v", err)
 	}
-	// <p>Invalid email or password.</p>
-	//status := signinResponse.Header.Get("Status")
 	rawBody, _ := ioutil.ReadAll(signinResponse.Body)
 	body := string(rawBody)
 	if strings.Contains(body, "Signed in successfully") {
@@ -94,9 +92,9 @@ func signIn(client *http.Client, email, password string) {
 	}
 }
 
+// get list of all screencast pages from https://www.destroyallsoftware.com/screencasts/catalog
 func getScreencastUrls(client *http.Client, screencastUrls chan *url.URL) {
 	log.Println("Fetching Screencast Catalog")
-	// get list of all screencast pages from https://www.destroyallsoftware.com/screencasts/catalog
 	catalogResponse, err := client.Get("https://www.destroyallsoftware.com/screencasts/catalog")
 	if err != nil {
 		log.Fatalf("Error retreiving catalog page: %v\n", err)
@@ -123,11 +121,9 @@ func getScreencastUrls(client *http.Client, screencastUrls chan *url.URL) {
 	}
 }
 
+// Hit the screencast URL, stream the file into a local folder
+// skip any files that already exist in the folder.
 func downloadScreencast(client *http.Client, screencastUrl *url.URL) {
-	//   - visit page
-	//   - find the link with text "Download for Desktop"
-	//   - follow it & any redirect
-	//   - save it to a folder
 	log.Printf("Trying %v\n", screencastUrl)
 
 	resp, err := client.Get(screencastUrl.String())
@@ -137,10 +133,8 @@ func downloadScreencast(client *http.Client, screencastUrl *url.URL) {
 	}
 	defer resp.Body.Close()
 
-	// TODO set filename properly
-	if resp.StatusCode == 404 {
-		// logResponseForDebug(resp)
-		log.Printf("404 for %v", screencastUrl)
+	if resp.StatusCode != 200 {
+		log.Printf("%v for %v", resp.Status, screencastUrl)
 	} else {
 
 		split_file_path := strings.Split(resp.Request.URL.Path, "/")
@@ -149,6 +143,8 @@ func downloadScreencast(client *http.Client, screencastUrl *url.URL) {
 		stat, err := os.Stat(filename)
 		if err == nil {
 			log.Printf("File %v already exists", stat.Name())
+			// TODO check length of response vs existing file
+			// contentLength := resp.Header.Get("Content-Length")
 			return
 		}
 
@@ -163,9 +159,6 @@ func downloadScreencast(client *http.Client, screencastUrl *url.URL) {
 		n, err := io.Copy(file, resp.Body)
 		log.Printf("Wrote %v bytes to %v\n\n", n, filename)
 	}
-
-	// TODO skip if file exists and is correct size
-	// contentLength := resp.Header.Get("Content-Length")
 }
 
 func extractMatchingHtmlNodes(response *http.Response, cssSelector string) []*html.Node {
@@ -180,10 +173,4 @@ func extractMatchingHtmlNodes(response *http.Response, cssSelector string) []*ht
 	}
 
 	return selectorChain.Find(tree.Top())
-}
-
-func logResponseForDebug(response *http.Response) {
-	log.Printf("Headers: %v\n", response.Header)
-	body, _ := ioutil.ReadAll(response.Body)
-	log.Printf("Body:\n%s\n\n", body)
 }
