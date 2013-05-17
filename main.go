@@ -19,7 +19,7 @@ import (
 
 func main() {
 	if len(os.Args) != 3 {
-		log.Fatalln("You must specify your DAAS login and password")
+		log.Fatalln("./das_downloader email password")
 	}
 
 	email := os.Args[1]
