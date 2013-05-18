@@ -2,7 +2,7 @@
 
 The all-you-can eat subscriptions to Destroy All Software finish up on May 31st. You might want to download them all locally before then.
 
-I wrote this little tool to download them all for you in Go. I did it for the practice, rather than the time savings. I could have clicked all those links myself in about the same about of time.
+I wrote this little tool to download them all for you in Go. I did it for the practice, rather than the time savings. I could have clicked all those links myself in about the same amount of time.
 
 ## How?
 
