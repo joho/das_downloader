@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -147,11 +148,24 @@ func downloadScreencast(client *http.Client, screencastUrl *url.URL) {
 		filename := split_file_path[len(split_file_path)-1]
 
 		stat, err := os.Stat(filename)
+		// os.Stat errors if the file doesn't exist, so check
+		// presence of an error
 		if err == nil {
-			log.Printf("File %v already exists", stat.Name())
-			// TODO check length of response vs existing file
-			// contentLength := resp.Header.Get("Content-Length")
-			return
+			// get the downloaded file size & content length from the request
+			existingFileSize := stat.Size()
+			contentLength, err := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
+			if err != nil {
+				// The too hard basket
+				log.Printf("File %v exists and failed to parse remote file size. Skipping (err %v)", err)
+				return
+			}
+
+			if contentLength == existingFileSize {
+				log.Printf("File %v is already fully downloaded. Skipping.", filename)
+				return
+			} else {
+				log.Printf("File %v is partially downloaded. Retrying. (%v of %v)", filename, existingFileSize, contentLength)
+			}
 		}
 
 		file, err := os.Create(filename)
