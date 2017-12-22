@@ -14,4 +14,4 @@ And it should start downloading them all. It'll do it concurrently, doing as man
 
 ## Who?
 
-Made by [John Barton](http://whoisjohnbarton.com), MIT licenced. If you want me to build you something, find out more at [codename.io](http://codename.io).
+Made by [John Barton](https://johnbarton.co/), MIT licenced.
